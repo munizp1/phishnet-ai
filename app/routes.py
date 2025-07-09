@@ -64,3 +64,29 @@ def log_detection():
         writer.writerow([timestamp, email_hash, result])
 
     return jsonify({"status": "logged", "hash": email_hash})
+
+# ============================
+# Feedback Endpoint
+# ============================
+
+FEEDBACK_FILE = os.path.join(os.path.dirname(__file__), "feedback_log.csv")
+
+@main.route("/feedback", methods=["POST"])
+def feedback():
+    data = request.get_json()
+    email_hash = data.get("email_hash", "")
+    feedback_value = data.get("feedback", "").lower()
+
+    if not email_hash or feedback_value not in ["up", "down"]:
+        return jsonify({"error": "Missing or invalid feedback"}), 400
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    log_entry = [timestamp, email_hash, feedback_value]
+
+    try:
+        with open(FEEDBACK_FILE, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(log_entry)
+        return jsonify({"status": "feedback received"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

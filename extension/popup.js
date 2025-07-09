@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", function () {
     result.classList.remove("safe", "phishing", "error");
     historyList.innerHTML = "";
 
-    fetch("http://127.0.0.1:5000/detect_phishing", {
+    fetch("https://phishnet-ai.onrender.com/detect_phishing", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

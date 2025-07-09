@@ -1,7 +1,8 @@
 # Byte-compiled / cached files
 __pycache__/
 *.py[cod]
-*.pkl
+- *.pkl
++ # *.pkl
 
 # OS files
 .DS_Store

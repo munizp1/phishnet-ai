@@ -2,6 +2,9 @@ from flask import Blueprint, request, jsonify
 import joblib
 import numpy as np
 import os
+import hashlib
+import csv
+from datetime import datetime
 
 main = Blueprint("main", __name__)
 
@@ -14,6 +17,10 @@ if os.path.exists(model_path):
 else:
     model = None
     print("⚠️ Warning: Model not found. Be sure to train or provide 'phishing_model.pkl'.")
+
+# ============================
+# ROUTES
+# ============================
 
 @main.route("/", methods=["GET"])
 def index():
@@ -28,10 +35,32 @@ def detect_phishing():
     email_text = data.get("email", "")
 
     if model:
-        # Send the raw email text as a list to the model
         prediction = model.predict([email_text])[0]
         result = "Phishing Email Detected!" if prediction == 1 else "Legitimate Email"
     else:
         result = "Model not loaded"
 
     return jsonify({"result": result})
+
+# ============================
+# Detection Log (CSV + Hash)
+# ============================
+
+LOG_FILE = os.path.join(os.path.dirname(__file__), "detection_log.csv")
+
+@main.route("/log_detection", methods=["POST"])
+def log_detection():
+    data = request.get_json()
+    email = data.get("email", "")
+    result = data.get("result", "N/A")
+    timestamp = datetime.utcnow().isoformat()
+
+    # Hash the email for privacy
+    email_hash = hashlib.sha256(email.encode()).hexdigest()
+
+    # Log to CSV
+    with open(LOG_FILE, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([timestamp, email_hash, result])
+
+    return jsonify({"status": "logged", "hash": email_hash})

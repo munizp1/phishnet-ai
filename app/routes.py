@@ -15,6 +15,13 @@ else:
     model = None
     print("⚠️ Warning: Model not found. Be sure to train or provide 'phishing_model.pkl'.")
 
+@main.route("/", methods=["GET"])
+def index():
+    return jsonify({
+        "message": "PhishNet backend is live!",
+        "usage": "Send a POST request to /detect_phishing with JSON: { 'email': 'your email content' }"
+    })
+
 @main.route("/detect_phishing", methods=["POST"])
 def detect_phishing():
     data = request.get_json()
@@ -28,4 +35,3 @@ def detect_phishing():
         result = "Model not loaded"
 
     return jsonify({"result": result})
-

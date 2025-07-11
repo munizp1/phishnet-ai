@@ -1,5 +1,3 @@
-// popup.js
-
 document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("phish-form");
   const input = document.getElementById("email-input");
@@ -7,6 +5,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const historyList = document.getElementById("history-list");
   const extractButton = document.getElementById("extractButton");
   const clearButton = document.getElementById("clearHistory");
+  const thumbsUp = document.getElementById("thumbsUp");
+  const thumbsDown = document.getElementById("thumbsDown");
+  const feedbackSection = document.getElementById("feedback-section");
+
+  let lastEmailText = "";
+  let lastResult = "";
 
   function analyzeIndicators(text) {
     const indicators = [];
@@ -30,6 +34,8 @@ document.addEventListener("DOMContentLoaded", function () {
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     const emailText = input.value.trim();
+    feedbackSection.style.display = "none";
+    enableFeedbackButtons();
 
     if (!emailText) {
       result.textContent = "Please paste or extract an email first.";
@@ -51,11 +57,12 @@ document.addEventListener("DOMContentLoaded", function () {
     })
       .then((res) => res.json())
       .then((data) => {
-        result.textContent = data.result;
+        const prediction = data.result;
+        result.textContent = prediction;
 
-        if (data.result.toLowerCase().includes("phishing")) {
+        if (prediction.toLowerCase().includes("phishing")) {
           result.classList.add("phishing");
-        } else if (data.result.toLowerCase().includes("legitimate")) {
+        } else if (prediction.toLowerCase().includes("legitimate")) {
           result.classList.add("safe");
         } else {
           result.classList.add("error");
@@ -73,33 +80,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const history = JSON.parse(localStorage.getItem("phishHistory") || "[]");
-        history.unshift({ text: emailText, result: data.result });
+        history.unshift({ text: emailText, result: prediction });
         localStorage.setItem("phishHistory", JSON.stringify(history.slice(0, 3)));
-
         displayHistory();
+
+        lastEmailText = emailText;
+        lastResult = prediction;
+        feedbackSection.style.display = "block";
       })
       .catch(() => {
         result.textContent = "Error connecting to server.";
         result.classList.add("error");
+        feedbackSection.style.display = "none";
       });
   });
 
   if (extractButton) {
     extractButton.addEventListener("click", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.executeScript(
-          tabs[0].id,
-          { file: "extractor.js" },
-          () => {
-            if (chrome.runtime.lastError) {
-              console.error("Injection failed:", chrome.runtime.lastError.message);
-              result.textContent = "Failed to extract: script error.";
-              result.classList.add("error");
-            } else {
-              console.log("✅ extractor.js injected");
-            }
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          files: ["extractor.js"],
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error("Injection failed:", chrome.runtime.lastError.message);
+            result.textContent = "Failed to extract: script error.";
+            result.classList.add("error");
+          } else {
+            console.log("✅ extractor.js injected");
           }
-        );
+        });
       });
     });
   }
@@ -111,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
       result.textContent = "History cleared.";
       result.classList.remove("safe", "phishing");
       result.classList.add("error");
+      feedbackSection.style.display = "none";
     });
   }
 
@@ -122,6 +133,70 @@ document.addEventListener("DOMContentLoaded", function () {
       result.classList.add("safe");
     }
   });
+
+  thumbsUp.addEventListener("click", () => {
+    sendFeedback("up");
+  });
+
+  thumbsDown.addEventListener("click", () => {
+    sendFeedback("down");
+  });
+
+  function sendFeedback(feedback) {
+    if (!lastEmailText || !lastResult) return;
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(lastEmailText);
+
+    crypto.subtle.digest("SHA-256", data).then((hashBuffer) => {
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const emailHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      fetch("https://phishnet-ai.onrender.com/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email_hash: emailHash,
+          feedback: feedback,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("✅ Feedback submitted:", data.status);
+          disableFeedbackButtons();
+          showThankYouMessage();
+        })
+        .catch((err) => {
+          console.error("❌ Feedback failed:", err);
+        });
+    });
+  }
+
+  function disableFeedbackButtons() {
+    thumbsUp.disabled = true;
+    thumbsDown.disabled = true;
+    thumbsUp.style.opacity = 0.5;
+    thumbsDown.style.opacity = 0.5;
+  }
+
+  function enableFeedbackButtons() {
+    thumbsUp.disabled = false;
+    thumbsDown.disabled = false;
+    thumbsUp.style.opacity = 1;
+    thumbsDown.style.opacity = 1;
+  }
+
+  function showThankYouMessage() {
+    const msg = document.createElement("div");
+    msg.textContent = "Thanks for your feedback!";
+    msg.style.fontSize = "12px";
+    msg.style.marginTop = "6px";
+    msg.style.color = "#444";
+    msg.style.fontStyle = "italic";
+    feedbackSection.appendChild(msg);
+  }
 
   displayHistory();
 });

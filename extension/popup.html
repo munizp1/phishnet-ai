@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>PhishNet</title>
   <style>
     body {
@@ -8,11 +9,13 @@
       padding: 12px;
       width: 250px;
     }
+
     h1 {
       font-size: 20px;
       margin-bottom: 10px;
       text-align: center;
     }
+
     textarea {
       width: 100%;
       height: 100px;
@@ -20,6 +23,7 @@
       padding: 8px;
       box-sizing: border-box;
     }
+
     button {
       width: 100%;
       padding: 8px;
@@ -30,23 +34,29 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #155ab6;
     }
+
     #extractButton {
       background-color: #34a853;
       margin-top: 6px;
     }
+
     #extractButton:hover {
       background-color: #2a9443;
     }
+
     #clearHistory {
       background-color: #ea4335;
       margin-top: 6px;
     }
+
     #clearHistory:hover {
       background-color: #c7372a;
     }
+
     #result {
       margin-top: 12px;
       font-weight: bold;
@@ -54,26 +64,77 @@
       padding: 8px;
       border-radius: 4px;
     }
+
     .safe {
       color: green;
     }
+
     .phishing {
       color: red;
     }
+
     .error {
       color: orange;
+    }
+
+    #feedback-section {
+      margin-top: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    #feedback-section span {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .feedback-btn {
+      font-size: 20px;
+      padding: 6px 14px;
+      margin: 0 8px;
+      border: none;
+      border-radius: 6px;
+      background-color: #eeeeee;
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .feedback-btn:hover {
+      background-color: #dddddd;
+    }
+
+    ul#history-list {
+      margin-top: 12px;
+      padding-left: 0;
+      list-style-type: none;
+    }
+
+    ul#history-list li {
+      font-size: 12px;
+      padding: 4px 0;
     }
   </style>
 </head>
 <body>
   <h1>PhishNet</h1>
+
   <form id="phish-form">
     <textarea id="email-input" placeholder="Paste email text here..."></textarea>
     <button type="submit">Check Email</button>
     <button type="button" id="extractButton">Extract from Gmail</button>
     <button type="button" id="clearHistory">Clear History</button>
   </form>
+
   <div id="result"></div>
+
+  <div id="feedback-section">
+    <span>Was this result accurate?</span>
+    <button class="feedback-btn" id="thumbsUp">👍</button>
+    <button class="feedback-btn" id="thumbsDown">👎</button>
+  </div>
+
   <ul id="history-list"></ul>
 
   <script src="popup.js"></script>
